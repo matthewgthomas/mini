@@ -3,17 +3,56 @@ title: "Matt and Tam's Minis"
 ---
 
 ```{r}
+#| label: Parameters/variables
+#| include: false
+matt_colour <- "#fd7e14"
+tam_colour <- "#0dcaf0"
+```
+
+```{r}
 #| label: Load libraries and data
 #| message: false
 #| warning: false
 #| include: false
 library(tidyverse)
 library(plotly)
-
-mini <- read_csv("https://docs.google.com/spreadsheets/d/1xdZ_8xLhYMizss7Z3XwB2xxhkTohuRK6GF8x9au2cZ0/export?format=csv")
 ```
 
 ```{r}
+#| label: Helpful functions
+#| message: false
+#| warning: false
+#| include: false
+date_formatter <- function(d) {
+  paste0(day(d), " ", month.name[month(d)], " ", year(d))
+}
+
+# Convert "minutes:seconds" to seconds
+convert_to_seconds <- function(time_vec) {
+  parts <- str_split(time_vec, ":", simplify = TRUE)  # Split into minutes & seconds
+  minutes <- as.numeric(parts[,1])
+  seconds <- as.numeric(parts[,2])
+  return(dseconds(minutes * 60 + seconds))  # Convert to duration
+}
+```
+
+```{r}
+#| label: Load and wrange data
+#| message: false
+#| warning: false
+#| include: false
+mini <- read_csv("https://docs.google.com/spreadsheets/d/1xdZ_8xLhYMizss7Z3XwB2xxhkTohuRK6GF8x9au2cZ0/export?format=csv")
+
+mini <- mini |> 
+  mutate(
+    Matt_seconds = convert_to_seconds(Matt),
+    Tam_seconds = convert_to_seconds(Tam),
+    Diff = abs(Matt_seconds - Tam_seconds)
+  )
+```
+
+```{r}
+#| label: Summary stats
 #| include: false
 num_games <- nrow(mini)
 
@@ -22,12 +61,16 @@ tam_won <- nrow(mini[mini$Winner == "Tam",])
 draws <- nrow(mini[mini$Winner == "Draw",])
 
 current_leader <- ifelse(matt_won > tam_won, "Matt", "Tam")
+current_leading_by <- ifelse(matt_won > tam_won, matt_won, tam_won)
+current_trailing_by <- ifelse(matt_won > tam_won, tam_won, matt_won)
 ```
 
-As of `r today()`, Tam and Matt have played `r nrow(mini)` games.
+As of `r today()`, Tam and Matt have played `r num_games` games.
+
+After `r num_games` Minis, **`r current_leader`** is leading `r current_leading_by` to `r current_trailing_by` (with `r draws` draw`r ifelse(draws>1, "s", "")`).
 
 ```{r}
-#| label: win_proportions
+#| label: Chart comparing numbers/proportions of wins
 #| echo: false
 #| message: false
 #| warning: false
@@ -93,3 +136,83 @@ ggplotly(plt_games_summary, height = 150, tooltip = "text") |>
   ) |> 
   layout(showlegend = FALSE)
 ```
+
+# How close are our games? / Speed
+
+```{r}
+#| label: Calculate speed of games
+#| message: false
+#| warning: false
+#| include: false
+player_times <- 
+  mini |> 
+  select(Date, Matt_time = Matt, Tam_time = Tam, Matt_seconds, Tam_seconds) |> 
+  pivot_longer(
+    cols = c(Matt_time, Tam_time, Matt_seconds, Tam_seconds), 
+    names_to = c("Player", ".value"), 
+    names_pattern = "(Matt|Tam)_(.*)"
+  )
+
+fastest_game <- 
+  player_times |> 
+  filter(seconds == min(seconds))
+
+slowest_game <- 
+  player_times |> 
+  filter(seconds == max(seconds))
+
+# Does the same person hold both records?
+same_person <- fastest_game$Player == slowest_game$Player
+
+# What was our closest game?
+closest_game <- 
+  mini |> 
+  filter(Diff > 0) |> 
+  filter(Diff == min(Diff))
+```
+
+**`r fastest_game$Player`** holds the record for the fastest Mini, completing it in **`r fastest_game$time`** on `r date_formatter(fastest_game$Date)`.
+
+**`r slowest_game$Player`** `r ifelse(same_person, "also", "")` played the slowest game: a sluggish **`r slowest_game$time`** on `r date_formatter(slowest_game$Date)`.
+
+Other than the draw`r ifelse(draws>1, "s", "")`, our closest game was won by **`r closest_game$Winner`** by a mere `r closest_game$Diff` second`r ifelse(closest_game$Diff>1, "s", "")`.
+
+```{r}
+#| label: How close are our games?
+#| echo: false
+#| message: false
+#| warning: false
+# Make a dumbbell plot connecting Matt and Tam's times
+plt_closeness <- 
+  mini |> 
+  ggplot(aes(x = Date, y = Matt_seconds, xend = Date, yend = Tam_seconds)) +
+  geom_segment(size = 0.5) +
+  geom_point(aes(text = str_glue("Matt completed the Mini in {Matt} on {date_formatter(Date)}")), colour = matt_colour, size = 2) +
+  geom_point(aes(y = Tam_seconds, text = str_glue("Tam completed the Mini in {Tam} on {date_formatter(Date)}")), colour = tam_colour, size = 2) +
+  theme_minimal() +
+  labs(
+    x = NULL,
+    y = "Time to finish Mini (seconds)"
+  )
+
+ggplotly(plt_closeness, tooltip = "text") |> 
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = list(
+      #"zoom",
+      "pan",
+      "select",
+      #"zoomIn",
+      #"zoomOut",
+      "autoScale",
+      #"resetScale",
+      "lasso2d",
+      "hoverClosestCartesian",
+      "hoverCompareCartesian"
+    )
+  ) |> 
+  layout(hovermode = "x")
+```
+
+# Streaks
