@@ -27,12 +27,23 @@ date_formatter <- function(d) {
   paste0(day(d), " ", month.name[month(d)], " ", year(d))
 }
 
-# Convert "minutes:seconds" to seconds
+# Convert "minutes:seconds" string to seconds (numeric)
 convert_to_seconds <- function(time_vec) {
   parts <- str_split(time_vec, ":", simplify = TRUE)  # Split into minutes & seconds
   minutes <- as.numeric(parts[,1])
   seconds <- as.numeric(parts[,2])
   return(dseconds(minutes * 60 + seconds))  # Convert to duration
+}
+
+# Convert seconds (numeric) to "minutes:seconds"
+convert_seconds_to_time_string <- function(seconds) {
+  minutes <- floor(seconds / 60)  # Extract whole minutes
+  sec <- seconds %% 60            # Get remaining seconds
+  
+  # Format seconds to always be two digits
+  formatted_time <- sprintf("%d:%02d", minutes, sec)
+  
+  return(formatted_time)
 }
 ```
 
@@ -47,7 +58,21 @@ mini <- mini |>
   mutate(
     Matt_seconds = convert_to_seconds(Matt),
     Tam_seconds = convert_to_seconds(Tam),
-    Diff = abs(Matt_seconds - Tam_seconds)
+    Diff = abs(Matt_seconds - Tam_seconds),
+    
+    Matt = convert_seconds_to_time_string(Matt_seconds),
+    Tam = convert_seconds_to_time_string(Tam_seconds),
+    
+    Weekday = factor(Weekday, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), ordered = TRUE)
+  )
+
+player_times <- 
+  mini |> 
+  select(Date, Weekday, Matt_time = Matt, Tam_time = Tam, Matt_seconds, Tam_seconds) |> 
+  pivot_longer(
+    cols = c(Matt_time, Tam_time, Matt_seconds, Tam_seconds), 
+    names_to = c("Player", ".value"), 
+    names_pattern = "(Matt|Tam)_(.*)"
   )
 ```
 
@@ -137,22 +162,13 @@ ggplotly(plt_games_summary, height = 150, tooltip = "text") |>
   layout(showlegend = FALSE)
 ```
 
-# How close are our games? / Speed
+# Speed
 
 ```{r}
 #| label: Calculate speed of games
 #| message: false
 #| warning: false
 #| include: false
-player_times <- 
-  mini |> 
-  select(Date, Matt_time = Matt, Tam_time = Tam, Matt_seconds, Tam_seconds) |> 
-  pivot_longer(
-    cols = c(Matt_time, Tam_time, Matt_seconds, Tam_seconds), 
-    names_to = c("Player", ".value"), 
-    names_pattern = "(Matt|Tam)_(.*)"
-  )
-
 fastest_game <- 
   player_times |> 
   filter(seconds == min(seconds))
@@ -213,6 +229,53 @@ ggplotly(plt_closeness, tooltip = "text") |>
     )
   ) |> 
   layout(hovermode = "x")
+```
+
+# Performance
+
+```{r}
+#| label: Mini completion times by weekday
+#| echo: false
+#| message: false
+#| warning: false
+player_times_summary <- 
+  player_times |> 
+  group_by(Weekday, Player) |> 
+  summarise(mean_seconds = duration(round(mean(seconds), 0))) |> 
+  ungroup() |> 
+  mutate(mean_seconds_string = convert_seconds_to_time_string(duration(mean_seconds)))
+
+plt_weekdays <- 
+  player_times |> 
+  ggplot(aes(x = Weekday, y = seconds, colour = Player)) +
+  geom_point(aes(text = str_glue("{Player} finished this Mini in {time}")), position = position_jitterdodge(), show.legend = FALSE) +
+  geom_point(data = player_times_summary, aes(y = mean_seconds, text = str_glue("{Player}'s average time to complete Minis on {Weekday}s is {mean_seconds_string}")), shape = 4, size = 3, position = position_jitterdodge(), show.legend = FALSE) +
+  coord_flip() +
+  scale_colour_manual(values = c(Matt = matt_colour, Tam = tam_colour)) +
+  theme_minimal() +
+  labs(
+    x = NULL,
+    y = "Completion time (seconds)"
+  )
+
+ggplotly(plt_weekdays, tooltip = "text") |> 
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = list(
+      #"zoom",
+      "pan",
+      "select",
+      #"zoomIn",
+      #"zoomOut",
+      "autoScale",
+      #"resetScale",
+      "lasso2d",
+      "hoverClosestCartesian",
+      "hoverCompareCartesian"
+    )
+  ) |> 
+  layout(showlegend = FALSE)
 ```
 
 # Streaks
