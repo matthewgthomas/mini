@@ -2,10 +2,94 @@
 title: "Matt and Tam's Minis"
 ---
 
-## Quarto
+```{r}
+#| label: Load libraries and data
+#| message: false
+#| warning: false
+#| include: false
+library(tidyverse)
+library(plotly)
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+mini <- read_csv("https://docs.google.com/spreadsheets/d/1xdZ_8xLhYMizss7Z3XwB2xxhkTohuRK6GF8x9au2cZ0/export?format=csv")
+```
 
 ```{r}
-1 + 1
+#| include: false
+num_games <- nrow(mini)
+
+matt_won <- nrow(mini[mini$Winner == "Matt",])
+tam_won <- nrow(mini[mini$Winner == "Tam",])
+draws <- nrow(mini[mini$Winner == "Draw",])
+
+current_leader <- ifelse(matt_won > tam_won, "Matt", "Tam")
+```
+
+As of `r today()`, Tam and Matt have played `r nrow(mini)` games.
+
+```{r}
+#| label: win_proportions
+#| echo: false
+#| message: false
+#| warning: false
+games_summary <- 
+  mini |> 
+  count(Winner) |> 
+  mutate(prop = n / sum(n)) |> 
+  
+  # Label for bars
+  mutate(label = ifelse(
+    Winner == "Draw",
+    "",
+    str_glue("{Winner}: {n} ({scales::percent(prop, accuracy = 1)})")
+  )) |> 
+  
+  # Label for tooltips
+  mutate(tooltip = ifelse(
+    Winner == "Draw",
+    str_glue("Matt and Tam have drawn {n} {ifelse(n==1, 'Mini', 'Minis')} ({scales::percent(prop, accuracy = 0.1)}) so far"),
+    str_glue("{Winner} has won {n} of {num_games} Minis ({scales::percent(prop, accuracy = 0.1)}) so far")
+  ))
+
+plt_games_summary <- 
+  games_summary |> 
+  ggplot(
+    aes(
+      x = "1", 
+      y = prop,
+      fill = reorder(Winner, prop),
+      label = label,
+      text = tooltip
+    )
+  ) +
+  geom_col(show.legend = FALSE) +
+  geom_text(size = 3, position = position_stack(vjust = 0.5)) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text = element_blank()
+  ) +
+  labs(
+    x = NULL,
+    y = NULL
+  )
+
+ggplotly(plt_games_summary, height = 150, tooltip = "text") |> 
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = list(
+      "zoom",
+      "pan",
+      "select",
+      "zoomIn",
+      "zoomOut",
+      "autoScale",
+      "resetScale",
+      "lasso2d",
+      "hoverClosestCartesian",
+      "hoverCompareCartesian"
+    )
+  ) |> 
+  layout(showlegend = FALSE)
 ```
