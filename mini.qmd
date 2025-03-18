@@ -1,6 +1,30 @@
 ---
 title: "Matt and Tam's Minis"
+format:
+  html: 
+    css: crossword.css
 ---
+
+::: {.crossword-grid}
+::: {.letter-cell}
+M
+:::
+::: {.letter-cell}
+I
+:::
+::: {.letter-cell}
+N
+:::
+::: {.letter-cell}
+I
+:::
+::: {.letter-cell}
+S
+:::
+:::
+
+
+<span class="cell-number">1</span>
 
 ```{r}
 #| label: Parameters/variables
