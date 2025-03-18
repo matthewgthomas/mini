@@ -15,6 +15,7 @@ tam_colour <- "#0dcaf0"
 #| warning: false
 #| include: false
 library(tidyverse)
+library(ggridges)
 library(plotly)
 ```
 
@@ -66,9 +67,18 @@ mini <- mini |>
     Weekday = factor(Weekday, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), ordered = TRUE)
   )
 
-player_times <- 
+player_times_weekday <- 
   mini |> 
   select(Date, Weekday, Matt_time = Matt, Tam_time = Tam, Matt_seconds, Tam_seconds) |> 
+  pivot_longer(
+    cols = c(Matt_time, Tam_time, Matt_seconds, Tam_seconds), 
+    names_to = c("Player", ".value"), 
+    names_pattern = "(Matt|Tam)_(.*)"
+  )
+
+player_times_setter <- 
+  mini |> 
+  select(Date, Setter, Matt_time = Matt, Tam_time = Tam, Matt_seconds, Tam_seconds) |> 
   pivot_longer(
     cols = c(Matt_time, Tam_time, Matt_seconds, Tam_seconds), 
     names_to = c("Player", ".value"), 
@@ -170,11 +180,11 @@ ggplotly(plt_games_summary, height = 150, tooltip = "text") |>
 #| warning: false
 #| include: false
 fastest_game <- 
-  player_times |> 
+  player_times_weekday |> 
   filter(seconds == min(seconds))
 
 slowest_game <- 
-  player_times |> 
+  player_times_weekday |> 
   filter(seconds == max(seconds))
 
 # Does the same person hold both records?
@@ -238,8 +248,8 @@ ggplotly(plt_closeness, tooltip = "text") |>
 #| message: false
 #| warning: false
 #| include: false
-player_times_summary <- 
-  player_times |> 
+player_times_weekday_summary <- 
+  player_times_weekday |> 
   group_by(Weekday, Player) |> 
   summarise(
     mean_seconds = duration(round(mean(seconds), 0)),
@@ -250,7 +260,7 @@ player_times_summary <-
 
 # When are we fastest?
 fastest_mean_times <- 
-  player_times_summary |> 
+  player_times_weekday_summary |> 
   group_by(Player) |> 
   filter(mean_seconds == min(mean_seconds))
 
@@ -283,12 +293,12 @@ The chart below shows the spread of our completion times on each day of the week
 #| message: false
 #| warning: false
 plt_weekdays <- 
-  player_times |> 
+  player_times_weekday |> 
   mutate(Weekday = fct_rev(Weekday)) |> 
   
   ggplot(aes(x = Weekday, y = seconds, colour = Player)) +
   geom_point(aes(text = str_glue("{Player} finished this Mini in {time}")), position = position_jitterdodge(), show.legend = FALSE) +
-  geom_point(data = player_times_summary, aes(y = mean_seconds, text = str_glue("{Player}'s average time to complete Minis on {Weekday}s is {mean_seconds_string}")), shape = 4, size = 3, position = position_jitterdodge(), show.legend = FALSE) +
+  geom_point(data = player_times_weekday_summary, aes(y = mean_seconds, text = str_glue("{Player}'s average time to complete Minis on {Weekday}s is {mean_seconds_string}")), shape = 4, size = 3, position = position_jitterdodge(), show.legend = FALSE) +
   coord_flip() +
   scale_colour_manual(values = c(Matt = matt_colour, Tam = tam_colour)) +
   theme_minimal() +
@@ -324,7 +334,7 @@ ggplotly(plt_weekdays, tooltip = "text") |>
 #| include: false
 # When are we least consistent? (based on standard deviations)
 largest_deviations <- 
-  player_times_summary |> 
+  player_times_weekday_summary |> 
   group_by(Player) |> 
   filter(sd_seconds == max(sd_seconds))
 
@@ -333,7 +343,7 @@ most_variable_day_matt <- as.character(largest_deviations[largest_deviations$Pla
 most_variable_day_tam <- as.character(largest_deviations[largest_deviations$Player == "Tam",]$Weekday)
 
 times_on_most_variable_day_matt <- 
-  player_times |> 
+  player_times_weekday |> 
   filter(Player == "Matt" & Weekday == most_variable_day_matt) |> 
   summarise(
     fastest = min(seconds),
@@ -341,7 +351,7 @@ times_on_most_variable_day_matt <-
   )
 
 times_on_most_variable_day_tam <- 
-  player_times |> 
+  player_times_weekday |> 
   filter(Player == "Tam" & Weekday == most_variable_day_tam) |> 
   summarise(
     fastest = min(seconds),
@@ -366,6 +376,45 @@ if (same_variable_day) {
 } else {
   str_glue("**Tam's** performance tends to be least consistent on {most_variable_day_tam}s, where she can be as quick as {convert_seconds_to_time_string(times_on_most_variable_day_tam$fastest)} or as slow as {convert_seconds_to_time_string(times_on_most_variable_day_tam$slowest)}. Matt is least consistent on {most_variable_day_matt}s, with times ranging from {convert_seconds_to_time_string(times_on_most_variable_day_matt$fastest)} to {convert_seconds_to_time_string(times_on_most_variable_day_matt$slowest)}.")
 }
+```
+
+# Setters
+
+```{r}
+#| label: Summary of performance by setter
+#| message: false
+#| warning: false
+#| include: false
+player_times_setter_summary <- 
+  player_times_setter |> 
+  group_by(Setter, Player) |> 
+  summarise(
+    mean_seconds = duration(round(mean(seconds), 0)),
+    sd_seconds = duration(round(sd(seconds), 0))
+  ) |> 
+  ungroup() |> 
+  mutate(mean_seconds_string = convert_seconds_to_time_string(duration(mean_seconds)))
+
+#TODO: Which setters are we each fastest, slowest and most variable with?
+```
+
+```{r}
+#| label: Spread of completion times by setter
+#| echo: false
+#| message: false
+#| warning: false
+player_times_setter |> 
+  ggplot(aes(x = seconds, y = Setter)) +
+  geom_density_ridges(scale = 4) + 
+  scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
+  scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
+  coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
+  facet_wrap(~Player, ncol = 2) +
+  theme_ridges() +
+  labs(
+    x = "Completion time (seconds)",
+    y = NULL
+  )
 ```
 
 # Streaks
