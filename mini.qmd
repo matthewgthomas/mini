@@ -17,6 +17,7 @@ tam_colour <- "#0dcaf0"
 library(tidyverse)
 library(ggridges)
 library(plotly)
+library(waffle)
 ```
 
 ```{r}
@@ -381,6 +382,67 @@ if (same_variable_day) {
 # Setters
 
 ```{r}
+#| label: Winners by setter
+#| message: false
+#| warning: false
+#| include: false
+winners_by_setter <- 
+  mini |> 
+  count(Setter, Winner) |> 
+  filter(Winner != "Draw")
+
+# Win ratios for each setter
+win_ratios <-
+  winners_by_setter |> 
+  group_by(Setter) |> 
+  mutate(
+    total_games = sum(n),
+    prop_won = n / total_games
+  ) |> 
+  ungroup() |> 
+  
+  group_by(Winner) |> 
+  filter(prop_won == max(prop_won))
+
+best_setter_matt <- as.character(win_ratios[win_ratios$Winner == "Matt",]$Setter)
+best_setter_matt_wins <- win_ratios[win_ratios$Winner == "Matt",]$n
+best_setter_matt_games <- win_ratios[win_ratios$Winner == "Matt",]$total_games
+
+best_setter_tam <- as.character(win_ratios[win_ratios$Winner == "Tam",]$Setter)
+best_setter_tam_wins <- win_ratios[win_ratios$Winner == "Tam",]$n
+best_setter_tam_games <- win_ratios[win_ratios$Winner == "Tam",]$total_games
+```
+
+Tam does best when **`r best_setter_tam`** sets the Mini, winning `r best_setter_tam_wins` of `r best_setter_tam_games` games.
+
+Matt's best Mini setter is **`r best_setter_matt`**, with `r best_setter_matt_wins` wins out of `r best_setter_matt_games` games.
+
+```{r}
+#| label: Waffle chart showing winners by setter
+#| echo: false
+#| message: false
+#| warning: false
+winners_by_setter |> 
+  ggplot(aes(fill = Winner, values = n)) +
+  geom_waffle(
+    n_rows = 3,
+    size = 1,
+    colour = "white",
+    flip = TRUE
+  ) +
+  coord_equal() +
+  facet_wrap(~Setter) +
+  scale_fill_manual(values = c(Matt = matt_colour, Tam = tam_colour)) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  theme(
+    legend.position = "top"
+  )
+```
+
+...
+
+```{r}
 #| label: Summary of performance by setter
 #| message: false
 #| warning: false
@@ -405,7 +467,7 @@ player_times_setter_summary <-
 #| warning: false
 player_times_setter |> 
   ggplot(aes(x = seconds, y = Setter)) +
-  geom_density_ridges(scale = 4) + 
+  geom_density_ridges(aes(colour = Setter, fill = Setter), scale = 4, show.legend = FALSE) + 
   scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
   scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
   coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
@@ -416,5 +478,3 @@ player_times_setter |>
     y = NULL
   )
 ```
-
-# Streaks
