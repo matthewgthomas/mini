@@ -235,18 +235,57 @@ ggplotly(plt_closeness, tooltip = "text") |>
 
 ```{r}
 #| label: Mini completion times by weekday
-#| echo: false
 #| message: false
 #| warning: false
+#| include: false
 player_times_summary <- 
   player_times |> 
   group_by(Weekday, Player) |> 
-  summarise(mean_seconds = duration(round(mean(seconds), 0))) |> 
+  summarise(
+    mean_seconds = duration(round(mean(seconds), 0)),
+    sd_seconds = duration(round(sd(seconds), 0))
+  ) |> 
   ungroup() |> 
   mutate(mean_seconds_string = convert_seconds_to_time_string(duration(mean_seconds)))
 
+# When are we fastest?
+fastest_mean_times <- 
+  player_times_summary |> 
+  group_by(Player) |> 
+  filter(mean_seconds == min(mean_seconds))
+
+fastest_day_matt <- as.character(fastest_mean_times[fastest_mean_times$Player == "Matt",]$Weekday)
+fastest_mean_time_matt <- fastest_mean_times[fastest_mean_times$Player == "Matt",]$mean_seconds_string
+
+fastest_day_tam <- as.character(fastest_mean_times[fastest_mean_times$Player == "Tam",]$Weekday)
+fastest_mean_time_tam <- fastest_mean_times[fastest_mean_times$Player == "Tam",]$mean_seconds_string
+
+# Are we fastest on the same day?
+same_fastest_day <- fastest_day_matt == fastest_day_tam
+```
+
+```{r}
+#| echo: false
+#| results: asis
+
+if (same_fastest_day) {
+  str_glue("**Tam** and **Matt** both tend to have their fastest Mini completion times on {fastest_day_tam}s.")
+} else {
+  str_glue("**Tam's** fastest Mini completion times tend to be on {fastest_day_tam}s, while **Matt** is faster on {fastest_day_matt}s, on average.")
+}
+```
+
+The chart below shows the spread of our completion times on each day of the week. Each dot represents one Mini; the Xs represent our average completion times on a given day.
+
+```{r}
+#| label: Plot weekday completion times
+#| echo: false
+#| message: false
+#| warning: false
 plt_weekdays <- 
   player_times |> 
+  mutate(Weekday = fct_rev(Weekday)) |> 
+  
   ggplot(aes(x = Weekday, y = seconds, colour = Player)) +
   geom_point(aes(text = str_glue("{Player} finished this Mini in {time}")), position = position_jitterdodge(), show.legend = FALSE) +
   geom_point(data = player_times_summary, aes(y = mean_seconds, text = str_glue("{Player}'s average time to complete Minis on {Weekday}s is {mean_seconds_string}")), shape = 4, size = 3, position = position_jitterdodge(), show.legend = FALSE) +
@@ -276,6 +315,57 @@ ggplotly(plt_weekdays, tooltip = "text") |>
     )
   ) |> 
   layout(showlegend = FALSE)
+```
+
+```{r}
+#| label: Mini completion times by weekday - deviations
+#| message: false
+#| warning: false
+#| include: false
+# When are we least consistent? (based on standard deviations)
+largest_deviations <- 
+  player_times_summary |> 
+  group_by(Player) |> 
+  filter(sd_seconds == max(sd_seconds))
+
+most_variable_day_matt <- as.character(largest_deviations[largest_deviations$Player == "Matt",]$Weekday)
+
+most_variable_day_tam <- as.character(largest_deviations[largest_deviations$Player == "Tam",]$Weekday)
+
+times_on_most_variable_day_matt <- 
+  player_times |> 
+  filter(Player == "Matt" & Weekday == most_variable_day_matt) |> 
+  summarise(
+    fastest = min(seconds),
+    slowest = max(seconds)
+  )
+
+times_on_most_variable_day_tam <- 
+  player_times |> 
+  filter(Player == "Tam" & Weekday == most_variable_day_tam) |> 
+  summarise(
+    fastest = min(seconds),
+    slowest = max(seconds)
+  )
+
+# Are we fastest on the same day?
+same_variable_day <- most_variable_day_matt == most_variable_day_tam
+```
+
+```{r}
+#| echo: false
+#| results: asis
+
+if (same_variable_day) {
+  fastest_overall <- min(times_on_most_variable_day_tam$fastest, times_on_most_variable_day_matt$fastest)
+  
+  slowest_overall <- max(times_on_most_variable_day_tam$slowest, times_on_most_variable_day_matt$slowest)
+  
+  str_glue("Both of us are least consistent on {most_variable_day_tam}s, with completion times as quick as {convert_seconds_to_time_string(fastest_overall)} and as slow as {convert_seconds_to_time_string(slowest_overall)}.")
+  
+} else {
+  str_glue("**Tam's** performance tends to be least consistent on {most_variable_day_tam}s, where she can be as quick as {convert_seconds_to_time_string(times_on_most_variable_day_tam$fastest)} or as slow as {convert_seconds_to_time_string(times_on_most_variable_day_tam$slowest)}. Matt is least consistent on {most_variable_day_matt}s, with times ranging from {convert_seconds_to_time_string(times_on_most_variable_day_matt$fastest)} to {convert_seconds_to_time_string(times_on_most_variable_day_matt$slowest)}.")
+}
 ```
 
 # Streaks
