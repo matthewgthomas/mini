@@ -276,9 +276,9 @@ same_fastest_day <- fastest_day_matt == fastest_day_tam
 ```
 
 ```{r}
+#| label: Mini completion time text
 #| echo: false
 #| results: asis
-
 if (same_fastest_day) {
   str_glue("**Tam** and **Matt** both tend to have their fastest Mini completion times on {fastest_day_tam}s.")
 } else {
@@ -286,46 +286,25 @@ if (same_fastest_day) {
 }
 ```
 
-The chart below shows the spread of our completion times on each day of the week. Each dot represents one Mini; the Xs represent our average completion times on a given day.
+The chart below shows the spread of our completion times on each day of the week:
 
 ```{r}
 #| label: Plot weekday completion times
 #| echo: false
 #| message: false
 #| warning: false
-plt_weekdays <- 
-  player_times_weekday |> 
-  mutate(Weekday = fct_rev(Weekday)) |> 
-  
-  ggplot(aes(x = Weekday, y = seconds, colour = Player)) +
-  geom_point(aes(text = str_glue("{Player} finished this Mini in {time}")), position = position_jitterdodge(), show.legend = FALSE) +
-  geom_point(data = player_times_weekday_summary, aes(y = mean_seconds, text = str_glue("{Player}'s average time to complete Minis on {Weekday}s is {mean_seconds_string}")), shape = 4, size = 3, position = position_jitterdodge(), show.legend = FALSE) +
-  coord_flip() +
-  scale_colour_manual(values = c(Matt = matt_colour, Tam = tam_colour)) +
-  theme_minimal() +
+player_times_weekday |> 
+  ggplot(aes(x = seconds, y = Weekday)) +
+  geom_density_ridges(aes(colour = Weekday, fill = Weekday), scale = 4, show.legend = FALSE) + 
+  scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
+  scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
+  coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
+  facet_wrap(~Player, ncol = 2) +
+  theme_ridges() +
   labs(
-    x = NULL,
-    y = "Completion time (seconds)"
+    x = "Completion time (seconds)",
+    y = NULL
   )
-
-ggplotly(plt_weekdays, tooltip = "text") |> 
-  config(
-    displayModeBar = TRUE,
-    displaylogo = FALSE,
-    modeBarButtonsToRemove = list(
-      #"zoom",
-      "pan",
-      "select",
-      #"zoomIn",
-      #"zoomOut",
-      "autoScale",
-      #"resetScale",
-      "lasso2d",
-      "hoverClosestCartesian",
-      "hoverCompareCartesian"
-    )
-  ) |> 
-  layout(showlegend = FALSE)
 ```
 
 ```{r}
@@ -440,8 +419,6 @@ winners_by_setter |>
   )
 ```
 
-...
-
 ```{r}
 #| label: Summary of performance by setter
 #| message: false
@@ -457,24 +434,27 @@ player_times_setter_summary <-
   ungroup() |> 
   mutate(mean_seconds_string = convert_seconds_to_time_string(duration(mean_seconds)))
 
-#TODO: Which setters are we each fastest, slowest and most variable with?
-```
+# Which setters are we each fastest and slowest with?
+matt_fastest_setter <- 
+  player_times_setter_summary |> 
+  filter(Player == "Matt") |> 
+  filter(mean_seconds == min(mean_seconds))
 
-```{r}
-#| label: Spread of completion times by setter
-#| echo: false
-#| message: false
-#| warning: false
-player_times_setter |> 
-  ggplot(aes(x = seconds, y = Setter)) +
-  geom_density_ridges(aes(colour = Setter, fill = Setter), scale = 4, show.legend = FALSE) + 
-  scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
-  scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
-  coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
-  facet_wrap(~Player, ncol = 2) +
-  theme_ridges() +
-  labs(
-    x = "Completion time (seconds)",
-    y = NULL
-  )
+matt_slowest_setter <-
+  player_times_setter_summary |> 
+  filter(Player == "Matt") |> 
+  filter(mean_seconds == max(mean_seconds))
+
+tam_fastest_setter <-
+  player_times_setter_summary |> 
+  filter(Player == "Tam") |> 
+  filter(mean_seconds == min(mean_seconds))
+
+tam_slowest_setter <-
+  player_times_setter_summary |> 
+  filter(Player == "Tam") |> 
+  filter(mean_seconds == max(mean_seconds))
 ```
+Matt tends to be fastest when **`r matt_fastest_setter$Setter`** sets the Mini, with an average completion time of **`r matt_fastest_setter$mean_seconds_string`**. But he's slowest when **`r matt_slowest_setter$Setter`** is the setter, completing these Minis in  **`r matt_slowest_setter$mean_seconds_string`** on average.
+
+Tam is speediest when **`r tam_fastest_setter$Setter`** sets the Mini, gunning it in  **`r tam_fastest_setter$mean_seconds_string`**. She's slowest when they're set by **`r tam_slowest_setter$Setter`**, with an average completion time of **`r tam_slowest_setter$mean_seconds_string`**.
