@@ -101,8 +101,6 @@ current_leading_by <- ifelse(matt_won > tam_won, matt_won, tam_won)
 current_trailing_by <- ifelse(matt_won > tam_won, tam_won, matt_won)
 ```
 
-As of `r today()`, Tam and Matt have played `r num_games` games.
-
 After `r num_games` Minis, **`r current_leader`** is leading `r current_leading_by` to `r current_trailing_by` (with `r draws` draw`r ifelse(draws>1, "s", "")`).
 
 ```{r}
@@ -459,3 +457,5 @@ tam_slowest_setter <-
 Matt tends to be fastest when **`r matt_fastest_setter$Setter`** sets the Mini, with an average completion time of **`r matt_fastest_setter$mean_seconds_string`**. But he's slowest when **`r matt_slowest_setter$Setter`** is the setter, completing these Minis in  **`r matt_slowest_setter$mean_seconds_string`** on average.
 
 Tam is speediest when **`r tam_fastest_setter$Setter`** sets the Mini, gunning it in  **`r tam_fastest_setter$mean_seconds_string`**. She's slowest when they're set by **`r tam_slowest_setter$Setter`**, with an average completion time of **`r tam_slowest_setter$mean_seconds_string`**.
+
+*Last updated on `r date_formatter(today())`.*
