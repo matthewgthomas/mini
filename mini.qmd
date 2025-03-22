@@ -266,6 +266,8 @@ closest_game <-
 
 Other than the draw`r ifelse(draws>1, "s", "")`, our closest game was won by **`r format_name(closest_game$Winner)`** by a mere `r closest_game$Diff` second`r ifelse(closest_game$Diff>1, "s", "")`.
 
+This chart compares our completion times for each Mini:
+
 ```{r}
 #| label: How close are our games?
 #| echo: false
@@ -307,31 +309,7 @@ ggplotly(plt_closeness, tooltip = "text") |>
 ::::::::::::::: crossword-container
 :::::::::::::: crossword-grid
 ::: letter-cell
-[2]{.cell-number} P
-:::
-
-::: letter-cell
-E
-:::
-
-::: letter-cell
-R
-:::
-
-::: letter-cell
-F
-:::
-
-::: letter-cell
-O
-:::
-
-::: letter-cell
-R
-:::
-
-::: letter-cell
-M
+[2]{.cell-number} D
 :::
 
 ::: letter-cell
@@ -339,15 +317,11 @@ A
 :::
 
 ::: letter-cell
-N
+Y
 :::
 
 ::: letter-cell
-C
-:::
-
-::: letter-cell
-E
+S
 :::
 ::::::::::::::
 :::::::::::::::
@@ -394,7 +368,7 @@ if (same_fastest_day) {
 }
 ```
 
-The chart below shows the spread of our completion times on each day of the week:
+The chart below shows the variation in our completion times on each day of the week:
 
 ```{r}
 #| label: Plot weekday completion times
