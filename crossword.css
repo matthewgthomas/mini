@@ -50,3 +50,18 @@ body {
 .letter-cell:not(:last-child) {
     border-right: none;
 }
+
+/* Styling for the words Matt and Tam */
+.matt {
+  padding: 0.25rem 0.25rem 0.25rem 0.25rem;
+  background-color: #fd7e14;
+  color: #fff;
+  font-weight: bold;
+}
+
+.tam {
+  padding: 0.25rem 0.25rem 0.25rem 0.25rem;
+  background-color: #0dcaf0;
+  color: #fff;
+  font-weight: bold;
+}

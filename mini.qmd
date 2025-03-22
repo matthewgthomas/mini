@@ -8,7 +8,7 @@ format:
 # Matt & Tam's {style="margin-bottom: 0;"}
 
 :::::::: crossword-grid
-::: {.letter-cell style="margin-bottom: 2rem; margin-top: 0;"}
+::: {.letter-cell style="margin-bottom: 1rem; margin-top: 0;"}
 M
 :::
 
@@ -34,6 +34,9 @@ S
 #| include: false
 matt_colour <- "#fd7e14"
 tam_colour <- "#0dcaf0"
+
+matt_name <- "[Matt]{.matt}"
+tam_name <- "[Tam]{.tam}"
 ```
 
 ```{r}
@@ -73,6 +76,17 @@ convert_seconds_to_time_string <- function(seconds) {
   formatted_time <- sprintf("%d:%02d", minutes, sec)
   
   return(formatted_time)
+}
+
+# Include CSS style for our names
+format_name <- function(name) {
+  if (str_detect(name, "Matt")) {
+    return(matt_name)
+  } else if (str_detect(name, "Tam")) {
+    return(tam_name)
+  } else {
+    return(name)
+  }
 }
 ```
 
@@ -128,7 +142,7 @@ current_leading_by <- ifelse(matt_won > tam_won, matt_won, tam_won)
 current_trailing_by <- ifelse(matt_won > tam_won, tam_won, matt_won)
 ```
 
-After `r num_games` Minis, **`r current_leader`** is leading `r current_leading_by` to `r current_trailing_by` (with `r draws` draw`r ifelse(draws>1, "s", "")`).
+After `r num_games` Minis, **`r format_name(current_leader)`** is leading `r current_leading_by` to `r current_trailing_by` (with `r draws` draw`r ifelse(draws>1, "s", "")`).
 
 ```{r}
 #| label: Chart comparing numbers/proportions of wins
@@ -246,11 +260,11 @@ closest_game <-
   filter(Diff == min(Diff))
 ```
 
-**`r fastest_game$Player`** holds the record for the fastest Mini, completing it in **`r fastest_game$time`** on `r date_formatter(fastest_game$Date)`.
+**`r format_name(fastest_game$Player)`** holds the record for the fastest Mini, completing it in **`r fastest_game$time`** on `r date_formatter(fastest_game$Date)`.
 
-**`r slowest_game$Player`** `r ifelse(same_person, "also", "")` played the slowest game: a sluggish **`r slowest_game$time`** on `r date_formatter(slowest_game$Date)`.
+**`r format_name(slowest_game$Player)`** `r ifelse(same_person, "also", "")` played the slowest game: a sluggish **`r slowest_game$time`** on `r date_formatter(slowest_game$Date)`.
 
-Other than the draw`r ifelse(draws>1, "s", "")`, our closest game was won by **`r closest_game$Winner`** by a mere `r closest_game$Diff` second`r ifelse(closest_game$Diff>1, "s", "")`.
+Other than the draw`r ifelse(draws>1, "s", "")`, our closest game was won by **`r format_name(closest_game$Winner)`** by a mere `r closest_game$Diff` second`r ifelse(closest_game$Diff>1, "s", "")`.
 
 ```{r}
 #| label: How close are our games?
@@ -374,9 +388,9 @@ same_fastest_day <- fastest_day_matt == fastest_day_tam
 #| echo: false
 #| results: asis
 if (same_fastest_day) {
-  str_glue("**Tam** and **Matt** both tend to have their fastest Mini completion times on {fastest_day_tam}s.")
+  str_glue("[Tam]{.tam} and [Matt]{.matt} both tend to have their fastest Mini completion times on {{fastest_day_tam}}s.", .open = "{{", .close = "}}")
 } else {
-  str_glue("**Tam's** fastest Mini completion times tend to be on {fastest_day_tam}s, while **Matt** is faster on {fastest_day_matt}s, on average.")
+  str_glue("[Tam's]{.tam} fastest Mini completion times tend to be on {{fastest_day_tam}}s, while [Matt]{.matt} is faster on {{fastest_day_matt}}s, on average.", .open = "{{", .close = "}}")
 }
 ```
 
@@ -448,7 +462,8 @@ if (same_variable_day) {
   str_glue("Both of us are least consistent on {most_variable_day_tam}s, with completion times as quick as {convert_seconds_to_time_string(fastest_overall)} and as slow as {convert_seconds_to_time_string(slowest_overall)}.")
   
 } else {
-  str_glue("**Tam's** performance tends to be least consistent on {most_variable_day_tam}s, where she can be as quick as {convert_seconds_to_time_string(times_on_most_variable_day_tam$fastest)} or as slow as {convert_seconds_to_time_string(times_on_most_variable_day_tam$slowest)}. Matt is least consistent on {most_variable_day_matt}s, with times ranging from {convert_seconds_to_time_string(times_on_most_variable_day_matt$fastest)} to {convert_seconds_to_time_string(times_on_most_variable_day_matt$slowest)}.")
+  str_glue("[Tam's]{.tam} performance tends to be least consistent on {{most_variable_day_tam}}s, where she can be as quick as {{convert_seconds_to_time_string(times_on_most_variable_day_tam$fastest)}} or as slow as {{convert_seconds_to_time_string(times_on_most_variable_day_tam$slowest)}}. [Matt]{.matt} is least consistent on {{most_variable_day_matt}}s, with times ranging from {{convert_seconds_to_time_string(times_on_most_variable_day_matt$fastest)}} to {{convert_seconds_to_time_string(times_on_most_variable_day_matt$slowest)}}.",
+           .open = "{{", .close = "}}")
 }
 ```
 
@@ -476,6 +491,10 @@ E
 
 ::: letter-cell
 R
+:::
+
+::: letter-cell
+S
 :::
 :::::::::
 ::::::::::
@@ -512,9 +531,9 @@ best_setter_tam_wins <- win_ratios[win_ratios$Winner == "Tam",]$n
 best_setter_tam_games <- win_ratios[win_ratios$Winner == "Tam",]$total_games
 ```
 
-Tam does best when **`r best_setter_tam`** sets the Mini, winning `r best_setter_tam_wins` of `r best_setter_tam_games` games.
+[Tam]{.tam} does best when **`r best_setter_tam`** sets the Mini, winning `r best_setter_tam_wins` of `r best_setter_tam_games` games.
 
-Matt's best Mini setter is **`r best_setter_matt`**, with `r best_setter_matt_wins` wins out of `r best_setter_matt_games` games.
+[Matt's]{.matt} favourite Mini setter is **`r best_setter_matt`**, with `r best_setter_matt_wins` wins out of `r best_setter_matt_games` games.
 
 ```{r}
 #| label: Waffle chart showing winners by setter
@@ -576,8 +595,8 @@ tam_slowest_setter <-
   filter(mean_seconds == max(mean_seconds))
 ```
 
-Matt tends to be fastest when **`r matt_fastest_setter$Setter`** sets the Mini, with an average completion time of **`r matt_fastest_setter$mean_seconds_string`**. But he's slowest when **`r matt_slowest_setter$Setter`** is the setter, completing these Minis in **`r matt_slowest_setter$mean_seconds_string`** on average.
+[Matt]{.matt} tends to be fastest when **`r matt_fastest_setter$Setter`** sets the Mini, with an average completion time of **`r matt_fastest_setter$mean_seconds_string`**. But he's slowest when **`r matt_slowest_setter$Setter`** is the setter, completing these Minis in **`r matt_slowest_setter$mean_seconds_string`** on average.
 
-Tam is speediest when **`r tam_fastest_setter$Setter`** sets the Mini, gunning it in **`r tam_fastest_setter$mean_seconds_string`**. She's slowest when they're set by **`r tam_slowest_setter$Setter`**, with an average completion time of **`r tam_slowest_setter$mean_seconds_string`**.
+[Tam]{.tam} is speediest when **`r tam_fastest_setter$Setter`** sets the Mini, gunning it in **`r tam_fastest_setter$mean_seconds_string`**. She's slowest when they're set by **`r tam_slowest_setter$Setter`**, with an average completion time of **`r tam_slowest_setter$mean_seconds_string`**.
 
 *Last updated on `r date_formatter(today())`.*
