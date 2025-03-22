@@ -1,30 +1,33 @@
 ---
-title: "Matt and Tam's Minis"
+pagetitle: "Matt and Tam's Minis"
 format:
   html: 
     css: crossword.css
 ---
 
-::: {.crossword-grid}
-::: {.letter-cell}
+<h1 style="margin-bottom: 0;">Matt & Tam's</h1>
+
+:::::::: crossword-grid
+::: {.letter-cell style="margin-bottom: 2rem; margin-top: 0;"}
 M
 :::
-::: {.letter-cell}
+
+::: letter-cell
 I
 :::
-::: {.letter-cell}
+
+::: letter-cell
 N
 :::
-::: {.letter-cell}
+
+::: letter-cell
 I
 :::
-::: {.letter-cell}
+
+::: letter-cell
 S
 :::
-:::
-
-
-<span class="cell-number">1</span>
+::::::::
 
 ```{r}
 #| label: Parameters/variables
@@ -196,7 +199,29 @@ ggplotly(plt_games_summary, height = 150, tooltip = "text") |>
   layout(showlegend = FALSE)
 ```
 
-# Speed
+::::::::: crossword-container
+:::::::: crossword-grid
+::: letter-cell
+[1]{.cell-number} S
+:::
+
+::: letter-cell
+P
+:::
+
+::: letter-cell
+E
+:::
+
+::: letter-cell
+E
+:::
+
+::: letter-cell
+D
+:::
+::::::::
+:::::::::
 
 ```{r}
 #| label: Calculate speed of games
@@ -265,7 +290,53 @@ ggplotly(plt_closeness, tooltip = "text") |>
   layout(hovermode = "x")
 ```
 
-# Performance
+::::::::::::::: crossword-container
+:::::::::::::: crossword-grid
+::: letter-cell
+[2]{.cell-number} P
+:::
+
+::: letter-cell
+E
+:::
+
+::: letter-cell
+R
+:::
+
+::: letter-cell
+F
+:::
+
+::: letter-cell
+O
+:::
+
+::: letter-cell
+R
+:::
+
+::: letter-cell
+M
+:::
+
+::: letter-cell
+A
+:::
+
+::: letter-cell
+N
+:::
+
+::: letter-cell
+C
+:::
+
+::: letter-cell
+E
+:::
+::::::::::::::
+:::::::::::::::
 
 ```{r}
 #| label: Mini completion times by weekday
@@ -381,7 +452,33 @@ if (same_variable_day) {
 }
 ```
 
-# Setters
+:::::::::: crossword-container
+::::::::: crossword-grid
+::: letter-cell
+[3]{.cell-number} S
+:::
+
+::: letter-cell
+E
+:::
+
+::: letter-cell
+T
+:::
+
+::: letter-cell
+T
+:::
+
+::: letter-cell
+E
+:::
+
+::: letter-cell
+R
+:::
+:::::::::
+::::::::::
 
 ```{r}
 #| label: Winners by setter
@@ -478,8 +575,9 @@ tam_slowest_setter <-
   filter(Player == "Tam") |> 
   filter(mean_seconds == max(mean_seconds))
 ```
-Matt tends to be fastest when **`r matt_fastest_setter$Setter`** sets the Mini, with an average completion time of **`r matt_fastest_setter$mean_seconds_string`**. But he's slowest when **`r matt_slowest_setter$Setter`** is the setter, completing these Minis in  **`r matt_slowest_setter$mean_seconds_string`** on average.
 
-Tam is speediest when **`r tam_fastest_setter$Setter`** sets the Mini, gunning it in  **`r tam_fastest_setter$mean_seconds_string`**. She's slowest when they're set by **`r tam_slowest_setter$Setter`**, with an average completion time of **`r tam_slowest_setter$mean_seconds_string`**.
+Matt tends to be fastest when **`r matt_fastest_setter$Setter`** sets the Mini, with an average completion time of **`r matt_fastest_setter$mean_seconds_string`**. But he's slowest when **`r matt_slowest_setter$Setter`** is the setter, completing these Minis in **`r matt_slowest_setter$mean_seconds_string`** on average.
+
+Tam is speediest when **`r tam_fastest_setter$Setter`** sets the Mini, gunning it in **`r tam_fastest_setter$mean_seconds_string`**. She's slowest when they're set by **`r tam_slowest_setter$Setter`**, with an average completion time of **`r tam_slowest_setter$mean_seconds_string`**.
 
 *Last updated on `r date_formatter(today())`.*
