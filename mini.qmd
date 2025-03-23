@@ -34,6 +34,7 @@ S
 #| include: false
 matt_colour <- "#fd7e14"
 tam_colour <- "#0dcaf0"
+bg_colour <- "#f5f5f5"
 
 matt_name <- "[Matt]{.matt}"
 tam_name <- "[Tam]{.tam}"
@@ -186,7 +187,9 @@ plt_games_summary <-
   theme_minimal() +
   theme(
     panel.grid = element_blank(),
-    axis.text = element_blank()
+    axis.text = element_blank(),
+    plot.background = element_rect(fill = bg_colour),
+    panel.background = element_rect(fill = bg_colour)
   ) +
   labs(
     x = NULL,
@@ -281,6 +284,10 @@ plt_closeness <-
   geom_point(aes(text = str_glue("Matt completed the Mini in {Matt} on {date_formatter(Date)}")), colour = matt_colour, size = 2) +
   geom_point(aes(y = Tam_seconds, text = str_glue("Tam completed the Mini in {Tam} on {date_formatter(Date)}")), colour = tam_colour, size = 2) +
   theme_minimal() +
+  theme(
+    plot.background = element_rect(fill = bg_colour),
+    panel.background = element_rect(fill = bg_colour)
+  ) +
   labs(
     x = NULL,
     y = "Time to finish Mini (seconds)"
@@ -383,6 +390,10 @@ player_times_weekday |>
   coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
   facet_wrap(~Player, ncol = 2) +
   theme_ridges() +
+  theme(
+    plot.background = element_rect(fill = bg_colour),
+    panel.background = element_rect(fill = bg_colour)
+  ) +
   labs(
     x = "Completion time (seconds)",
     y = NULL
@@ -509,6 +520,8 @@ best_setter_tam_games <- win_ratios[win_ratios$Winner == "Tam",]$total_games
 
 [Matt's]{.matt} favourite Mini setter is **`r best_setter_matt`**, with `r best_setter_matt_wins` wins out of `r best_setter_matt_games` games.
 
+Each square in this chart represents one Mini, coloured by the winner, for each crossword setter:
+
 ```{r}
 #| label: Waffle chart showing winners by setter
 #| echo: false
@@ -519,16 +532,28 @@ winners_by_setter |>
   geom_waffle(
     n_rows = 3,
     size = 1,
-    colour = "white",
+    colour = bg_colour,
     flip = TRUE
   ) +
   coord_equal() +
   facet_wrap(~Setter) +
   scale_fill_manual(values = c(Matt = matt_colour, Tam = tam_colour)) +
   theme_minimal() +
-  theme_enhance_waffle() +
   theme(
-    legend.position = "top"
+    legend.position = "top",
+    plot.background = element_rect(fill = bg_colour, colour = bg_colour),
+    panel.background = element_rect(fill = bg_colour, colour = bg_colour),
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.x.top = element_blank(),
+    axis.title.x.bottom = element_blank(),
+    axis.title.y = element_blank(),
+    axis.title.y.left = element_blank(),
+    axis.title.y.right = element_blank()
   )
 ```
 
@@ -571,6 +596,6 @@ tam_slowest_setter <-
 
 [Matt]{.matt} tends to be fastest when **`r matt_fastest_setter$Setter`** sets the Mini, with an average completion time of **`r matt_fastest_setter$mean_seconds_string`**. But he's slowest when **`r matt_slowest_setter$Setter`** is the setter, completing these Minis in **`r matt_slowest_setter$mean_seconds_string`** on average.
 
-[Tam]{.tam} is speediest when **`r tam_fastest_setter$Setter`** sets the Mini, gunning it in **`r tam_fastest_setter$mean_seconds_string`**. She's slowest when they're set by **`r tam_slowest_setter$Setter`**, with an average completion time of **`r tam_slowest_setter$mean_seconds_string`**.
+[Tam]{.tam} is speediest when **`r tam_fastest_setter$Setter`** sets the Mini, gunning it in **`r tam_fastest_setter$mean_seconds_string`**, on average. She's slowest when they're set by **`r tam_slowest_setter$Setter`**, with an average completion time of **`r tam_slowest_setter$mean_seconds_string`**.
 
 *Last updated on `r date_formatter(today())`.*
