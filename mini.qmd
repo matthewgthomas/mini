@@ -45,7 +45,15 @@ tam_name <- "[Tam]{.tam}"
 #| message: false
 #| warning: false
 #| include: false
-library(tidyverse)
+#library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(readr)
+library(stringr)
+library(tibble)
+library(tidyr)
+
 library(ggridges)
 library(plotly)
 library(waffle)
@@ -254,7 +262,7 @@ slowest_game <-
   filter(seconds == max(seconds))
 
 # Does the same person hold both records?
-same_person <- fastest_game$Player == slowest_game$Player
+same_person <- ifelse(nrow(fastest_game) == 1 & nrow(slowest_game) == 1, fastest_game$Player == slowest_game$Player, FALSE)
 
 # What was our closest game?
 closest_game <- 
@@ -263,9 +271,43 @@ closest_game <-
   filter(Diff == min(Diff))
 ```
 
-**`r format_name(fastest_game$Player)`** holds the record for the fastest Mini, completing it in **`r fastest_game$time`** on `r date_formatter(fastest_game$Date)`.
+```{r}
+#| label: Who played the fastest game
+#| echo: false
+#| results: asis
+# Do we both hold the record for fastest game?
+if (nrow(fastest_game) > 1 & length(unique(fastest_game$Player)) > 1) {
+  # There's more than one fastest game, and they were won by different people
+  str_glue("We both hold the record for the fastest Mini, completing it in **{fastest_game[1,]$time}** on {date_formatter(fastest_game[1,]$Date)}.")
+  
+} else if (nrow(fastest_game) > 1 & length(unique(fastest_game$Player)) == 1) {
+  # There's more than one fastest game, but they were won by the same person
+  str_glue("{format_name(fastest_game[1,]$Player)} holds the record for the fastest Mini, completing it in **{fastest_game[1,]$time}** on {date_formatter(fastest_game[1,]$Date)}.")
+  
+} else {
+  # There's only one fastest game
+  str_glue("{format_name(fastest_game$Player)} holds the record for the fastest Mini, completing it in **{fastest_game$time} on {date_formatter(fastest_game$Date)}.")
+}
+```
 
-**`r format_name(slowest_game$Player)`** `r ifelse(same_person, "also", "")` played the slowest game: a sluggish **`r slowest_game$time`** on `r date_formatter(slowest_game$Date)`.
+```{r}
+#| label: Who played the slowest game
+#| echo: false
+#| results: asis
+# Do we both hold the record for slowest game?
+if (nrow(slowest_game) > 1 & length(unique(slowest_game$Player)) > 1) {
+  # There's more than one slowest game, and they were won by different people
+  str_glue("Both of us played the slowest ever Mini, completing it in **{slowest_game[1,]$time}** on {date_formatter(slowest_game[1,]$Date)}.")
+  
+} else if (nrow(slowest_game) > 1 & length(unique(slowest_game$Player)) == 1) {
+  # There's more than one slowest game, but they were won by the same person
+  str_glue("{format_name(slowest_game[1,]$Player)} {ifelse(same_person, 'also ', '')}played the slowest game: a sluggish **{slowest_game[1,]$time}** on {date_formatter(slowest_game[1,]$Date)}.")
+  
+} else {
+  # There's only one slowest game
+  str_glue("{format_name(slowest_game$Player)} {ifelse(same_person, 'also ', '')}played the slowest game: a sluggish **{slowest_game$time}** on {date_formatter(slowest_game$Date)}.")
+}
+```
 
 Other than the draw`r ifelse(draws>1, "s", "")`, our closest game was won by **`r format_name(closest_game$Winner)`** by a mere `r closest_game$Diff` second`r ifelse(closest_game$Diff>1, "s", "")`.
 
@@ -313,8 +355,8 @@ ggplotly(plt_closeness, tooltip = "text") |>
   layout(hovermode = "x")
 ```
 
-::::::::::::::: crossword-container
-:::::::::::::: crossword-grid
+:::::::: crossword-container
+::::::: crossword-grid
 ::: letter-cell
 [2]{.cell-number} D
 :::
@@ -330,8 +372,8 @@ Y
 ::: letter-cell
 S
 :::
-::::::::::::::
-:::::::::::::::
+:::::::
+::::::::
 
 ```{r}
 #| label: Mini completion times by weekday
@@ -452,8 +494,8 @@ if (same_variable_day) {
 }
 ```
 
-:::::::::: crossword-container
-::::::::: crossword-grid
+::::::::::: crossword-container
+:::::::::: crossword-grid
 ::: letter-cell
 [3]{.cell-number} S
 :::
@@ -481,8 +523,8 @@ R
 ::: letter-cell
 S
 :::
-:::::::::
 ::::::::::
+:::::::::::
 
 ```{r}
 #| label: Winners by setter
