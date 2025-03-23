@@ -1,0 +1,601 @@
+---
+pagetitle: "Matt and Tam's Minis"
+format:
+  html: 
+    css: crossword.css
+---
+
+# Matt & Tam's {style="margin-bottom: 0;"}
+
+:::::::: crossword-grid
+::: {.letter-cell style="margin-bottom: 1rem; margin-top: 0;"}
+M
+:::
+
+::: letter-cell
+I
+:::
+
+::: letter-cell
+N
+:::
+
+::: letter-cell
+I
+:::
+
+::: letter-cell
+S
+:::
+::::::::
+
+```{r}
+#| label: Parameters/variables
+#| include: false
+matt_colour <- "#fd7e14"
+tam_colour <- "#0dcaf0"
+bg_colour <- "#f5f5f5"
+
+matt_name <- "[Matt]{.matt}"
+tam_name <- "[Tam]{.tam}"
+```
+
+```{r}
+#| label: Load libraries and data
+#| message: false
+#| warning: false
+#| include: false
+library(tidyverse)
+library(ggridges)
+library(plotly)
+library(waffle)
+```
+
+```{r}
+#| label: Helpful functions
+#| message: false
+#| warning: false
+#| include: false
+date_formatter <- function(d) {
+  paste0(day(d), " ", month.name[month(d)], " ", year(d))
+}
+
+# Convert "minutes:seconds" string to seconds (numeric)
+convert_to_seconds <- function(time_vec) {
+  parts <- str_split(time_vec, ":", simplify = TRUE)  # Split into minutes & seconds
+  minutes <- as.numeric(parts[,1])
+  seconds <- as.numeric(parts[,2])
+  return(dseconds(minutes * 60 + seconds))  # Convert to duration
+}
+
+# Convert seconds (numeric) to "minutes:seconds"
+convert_seconds_to_time_string <- function(seconds) {
+  minutes <- floor(seconds / 60)  # Extract whole minutes
+  sec <- seconds %% 60            # Get remaining seconds
+  
+  # Format seconds to always be two digits
+  formatted_time <- sprintf("%d:%02d", minutes, sec)
+  
+  return(formatted_time)
+}
+
+# Include CSS style for our names
+format_name <- function(name) {
+  if (str_detect(name, "Matt")) {
+    return(matt_name)
+  } else if (str_detect(name, "Tam")) {
+    return(tam_name)
+  } else {
+    return(name)
+  }
+}
+```
+
+```{r}
+#| label: Load and wrange data
+#| message: false
+#| warning: false
+#| include: false
+mini <- read_csv("https://docs.google.com/spreadsheets/d/1xdZ_8xLhYMizss7Z3XwB2xxhkTohuRK6GF8x9au2cZ0/export?format=csv")
+
+mini <- mini |> 
+  mutate(
+    Matt_seconds = convert_to_seconds(Matt),
+    Tam_seconds = convert_to_seconds(Tam),
+    Diff = abs(Matt_seconds - Tam_seconds),
+    
+    Matt = convert_seconds_to_time_string(Matt_seconds),
+    Tam = convert_seconds_to_time_string(Tam_seconds),
+    
+    Weekday = factor(Weekday, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), ordered = TRUE)
+  )
+
+player_times_weekday <- 
+  mini |> 
+  select(Date, Weekday, Matt_time = Matt, Tam_time = Tam, Matt_seconds, Tam_seconds) |> 
+  pivot_longer(
+    cols = c(Matt_time, Tam_time, Matt_seconds, Tam_seconds), 
+    names_to = c("Player", ".value"), 
+    names_pattern = "(Matt|Tam)_(.*)"
+  )
+
+player_times_setter <- 
+  mini |> 
+  select(Date, Setter, Matt_time = Matt, Tam_time = Tam, Matt_seconds, Tam_seconds) |> 
+  pivot_longer(
+    cols = c(Matt_time, Tam_time, Matt_seconds, Tam_seconds), 
+    names_to = c("Player", ".value"), 
+    names_pattern = "(Matt|Tam)_(.*)"
+  )
+```
+
+```{r}
+#| label: Summary stats
+#| include: false
+num_games <- nrow(mini)
+
+matt_won <- nrow(mini[mini$Winner == "Matt",])
+tam_won <- nrow(mini[mini$Winner == "Tam",])
+draws <- nrow(mini[mini$Winner == "Draw",])
+
+current_leader <- ifelse(matt_won > tam_won, "Matt", "Tam")
+current_leading_by <- ifelse(matt_won > tam_won, matt_won, tam_won)
+current_trailing_by <- ifelse(matt_won > tam_won, tam_won, matt_won)
+```
+
+After `r num_games` Minis, **`r format_name(current_leader)`** is leading `r current_leading_by` to `r current_trailing_by` (with `r draws` draw`r ifelse(draws>1, "s", "")`).
+
+```{r}
+#| label: Chart comparing numbers/proportions of wins
+#| echo: false
+#| message: false
+#| warning: false
+games_summary <- 
+  mini |> 
+  count(Winner) |> 
+  mutate(prop = n / sum(n)) |> 
+  
+  # Label for bars
+  mutate(label = ifelse(
+    Winner == "Draw",
+    "",
+    str_glue("{Winner}: {n} ({scales::percent(prop, accuracy = 1)})")
+  )) |> 
+  
+  # Label for tooltips
+  mutate(tooltip = ifelse(
+    Winner == "Draw",
+    str_glue("Matt and Tam have drawn {n} {ifelse(n==1, 'Mini', 'Minis')} ({scales::percent(prop, accuracy = 0.1)}) so far"),
+    str_glue("{Winner} has won {n} of {num_games} Minis ({scales::percent(prop, accuracy = 0.1)}) so far")
+  ))
+
+plt_games_summary <- 
+  games_summary |> 
+  ggplot(
+    aes(
+      x = "1", 
+      y = prop,
+      fill = reorder(Winner, prop),
+      label = label,
+      text = tooltip
+    )
+  ) +
+  geom_col(show.legend = FALSE) +
+  geom_text(size = 3, position = position_stack(vjust = 0.5)) +
+  coord_flip() +
+  scale_fill_manual(values = c(Matt = matt_colour, Tam = tam_colour, Draw = "grey")) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    plot.background = element_rect(fill = bg_colour),
+    panel.background = element_rect(fill = bg_colour)
+  ) +
+  labs(
+    x = NULL,
+    y = NULL
+  )
+
+ggplotly(plt_games_summary, height = 150, tooltip = "text") |> 
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = list(
+      "zoom",
+      "pan",
+      "select",
+      "zoomIn",
+      "zoomOut",
+      "autoScale",
+      "resetScale",
+      "lasso2d",
+      "hoverClosestCartesian",
+      "hoverCompareCartesian"
+    )
+  ) |> 
+  layout(showlegend = FALSE)
+```
+
+::::::::: crossword-container
+:::::::: crossword-grid
+::: letter-cell
+[1]{.cell-number} S
+:::
+
+::: letter-cell
+P
+:::
+
+::: letter-cell
+E
+:::
+
+::: letter-cell
+E
+:::
+
+::: letter-cell
+D
+:::
+::::::::
+:::::::::
+
+```{r}
+#| label: Calculate speed of games
+#| message: false
+#| warning: false
+#| include: false
+fastest_game <- 
+  player_times_weekday |> 
+  filter(seconds == min(seconds))
+
+slowest_game <- 
+  player_times_weekday |> 
+  filter(seconds == max(seconds))
+
+# Does the same person hold both records?
+same_person <- fastest_game$Player == slowest_game$Player
+
+# What was our closest game?
+closest_game <- 
+  mini |> 
+  filter(Diff > 0) |> 
+  filter(Diff == min(Diff))
+```
+
+**`r format_name(fastest_game$Player)`** holds the record for the fastest Mini, completing it in **`r fastest_game$time`** on `r date_formatter(fastest_game$Date)`.
+
+**`r format_name(slowest_game$Player)`** `r ifelse(same_person, "also", "")` played the slowest game: a sluggish **`r slowest_game$time`** on `r date_formatter(slowest_game$Date)`.
+
+Other than the draw`r ifelse(draws>1, "s", "")`, our closest game was won by **`r format_name(closest_game$Winner)`** by a mere `r closest_game$Diff` second`r ifelse(closest_game$Diff>1, "s", "")`.
+
+This chart compares our completion times for each Mini:
+
+```{r}
+#| label: How close are our games?
+#| echo: false
+#| message: false
+#| warning: false
+# Make a dumbbell plot connecting Matt and Tam's times
+plt_closeness <- 
+  mini |> 
+  ggplot(aes(x = Date, y = Matt_seconds, xend = Date, yend = Tam_seconds)) +
+  geom_segment(size = 0.5) +
+  geom_point(aes(text = str_glue("Matt completed the Mini in {Matt} on {date_formatter(Date)}")), colour = matt_colour, size = 2) +
+  geom_point(aes(y = Tam_seconds, text = str_glue("Tam completed the Mini in {Tam} on {date_formatter(Date)}")), colour = tam_colour, size = 2) +
+  theme_minimal() +
+  theme(
+    plot.background = element_rect(fill = bg_colour),
+    panel.background = element_rect(fill = bg_colour)
+  ) +
+  labs(
+    x = NULL,
+    y = "Time to finish Mini (seconds)"
+  )
+
+ggplotly(plt_closeness, tooltip = "text") |> 
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = list(
+      #"zoom",
+      "pan",
+      "select",
+      #"zoomIn",
+      #"zoomOut",
+      "autoScale",
+      #"resetScale",
+      "lasso2d",
+      "hoverClosestCartesian",
+      "hoverCompareCartesian"
+    )
+  ) |> 
+  layout(hovermode = "x")
+```
+
+::::::::::::::: crossword-container
+:::::::::::::: crossword-grid
+::: letter-cell
+[2]{.cell-number} D
+:::
+
+::: letter-cell
+A
+:::
+
+::: letter-cell
+Y
+:::
+
+::: letter-cell
+S
+:::
+::::::::::::::
+:::::::::::::::
+
+```{r}
+#| label: Mini completion times by weekday
+#| message: false
+#| warning: false
+#| include: false
+player_times_weekday_summary <- 
+  player_times_weekday |> 
+  group_by(Weekday, Player) |> 
+  summarise(
+    mean_seconds = duration(round(mean(seconds), 0)),
+    sd_seconds = duration(round(sd(seconds), 0))
+  ) |> 
+  ungroup() |> 
+  mutate(mean_seconds_string = convert_seconds_to_time_string(duration(mean_seconds)))
+
+# When are we fastest?
+fastest_mean_times <- 
+  player_times_weekday_summary |> 
+  group_by(Player) |> 
+  filter(mean_seconds == min(mean_seconds))
+
+fastest_day_matt <- as.character(fastest_mean_times[fastest_mean_times$Player == "Matt",]$Weekday)
+fastest_mean_time_matt <- fastest_mean_times[fastest_mean_times$Player == "Matt",]$mean_seconds_string
+
+fastest_day_tam <- as.character(fastest_mean_times[fastest_mean_times$Player == "Tam",]$Weekday)
+fastest_mean_time_tam <- fastest_mean_times[fastest_mean_times$Player == "Tam",]$mean_seconds_string
+
+# Are we fastest on the same day?
+same_fastest_day <- fastest_day_matt == fastest_day_tam
+```
+
+```{r}
+#| label: Mini completion time text
+#| echo: false
+#| results: asis
+if (same_fastest_day) {
+  str_glue("[Tam]{.tam} and [Matt]{.matt} both tend to have their fastest Mini completion times on {{fastest_day_tam}}s.", .open = "{{", .close = "}}")
+} else {
+  str_glue("[Tam's]{.tam} fastest Mini completion times tend to be on {{fastest_day_tam}}s, while [Matt]{.matt} is faster on {{fastest_day_matt}}s, on average.", .open = "{{", .close = "}}")
+}
+```
+
+The chart below shows the variation in our completion times on each day of the week:
+
+```{r}
+#| label: Plot weekday completion times
+#| echo: false
+#| message: false
+#| warning: false
+player_times_weekday |> 
+  ggplot(aes(x = seconds, y = Weekday)) +
+  geom_density_ridges(aes(colour = Weekday, fill = Weekday), scale = 4, show.legend = FALSE) + 
+  scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
+  scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
+  coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
+  facet_wrap(~Player, ncol = 2) +
+  theme_ridges() +
+  theme(
+    plot.background = element_rect(fill = bg_colour),
+    panel.background = element_rect(fill = bg_colour)
+  ) +
+  labs(
+    x = "Completion time (seconds)",
+    y = NULL
+  )
+```
+
+```{r}
+#| label: Mini completion times by weekday - deviations
+#| message: false
+#| warning: false
+#| include: false
+# When are we least consistent? (based on standard deviations)
+largest_deviations <- 
+  player_times_weekday_summary |> 
+  group_by(Player) |> 
+  filter(sd_seconds == max(sd_seconds))
+
+most_variable_day_matt <- as.character(largest_deviations[largest_deviations$Player == "Matt",]$Weekday)
+
+most_variable_day_tam <- as.character(largest_deviations[largest_deviations$Player == "Tam",]$Weekday)
+
+times_on_most_variable_day_matt <- 
+  player_times_weekday |> 
+  filter(Player == "Matt" & Weekday == most_variable_day_matt) |> 
+  summarise(
+    fastest = min(seconds),
+    slowest = max(seconds)
+  )
+
+times_on_most_variable_day_tam <- 
+  player_times_weekday |> 
+  filter(Player == "Tam" & Weekday == most_variable_day_tam) |> 
+  summarise(
+    fastest = min(seconds),
+    slowest = max(seconds)
+  )
+
+# Are we fastest on the same day?
+same_variable_day <- most_variable_day_matt == most_variable_day_tam
+```
+
+```{r}
+#| echo: false
+#| results: asis
+
+if (same_variable_day) {
+  fastest_overall <- min(times_on_most_variable_day_tam$fastest, times_on_most_variable_day_matt$fastest)
+  
+  slowest_overall <- max(times_on_most_variable_day_tam$slowest, times_on_most_variable_day_matt$slowest)
+  
+  str_glue("Both of us are least consistent on {most_variable_day_tam}s, with completion times as quick as {convert_seconds_to_time_string(fastest_overall)} and as slow as {convert_seconds_to_time_string(slowest_overall)}.")
+  
+} else {
+  str_glue("[Tam's]{.tam} performance tends to be least consistent on {{most_variable_day_tam}}s, where she can be as quick as {{convert_seconds_to_time_string(times_on_most_variable_day_tam$fastest)}} or as slow as {{convert_seconds_to_time_string(times_on_most_variable_day_tam$slowest)}}. [Matt]{.matt} is least consistent on {{most_variable_day_matt}}s, with times ranging from {{convert_seconds_to_time_string(times_on_most_variable_day_matt$fastest)}} to {{convert_seconds_to_time_string(times_on_most_variable_day_matt$slowest)}}.",
+           .open = "{{", .close = "}}")
+}
+```
+
+:::::::::: crossword-container
+::::::::: crossword-grid
+::: letter-cell
+[3]{.cell-number} S
+:::
+
+::: letter-cell
+E
+:::
+
+::: letter-cell
+T
+:::
+
+::: letter-cell
+T
+:::
+
+::: letter-cell
+E
+:::
+
+::: letter-cell
+R
+:::
+
+::: letter-cell
+S
+:::
+:::::::::
+::::::::::
+
+```{r}
+#| label: Winners by setter
+#| message: false
+#| warning: false
+#| include: false
+winners_by_setter <- 
+  mini |> 
+  count(Setter, Winner) |> 
+  filter(Winner != "Draw")
+
+# Win ratios for each setter
+win_ratios <-
+  winners_by_setter |> 
+  group_by(Setter) |> 
+  mutate(
+    total_games = sum(n),
+    prop_won = n / total_games
+  ) |> 
+  ungroup() |> 
+  
+  group_by(Winner) |> 
+  filter(prop_won == max(prop_won))
+
+best_setter_matt <- as.character(win_ratios[win_ratios$Winner == "Matt",]$Setter)
+best_setter_matt_wins <- win_ratios[win_ratios$Winner == "Matt",]$n
+best_setter_matt_games <- win_ratios[win_ratios$Winner == "Matt",]$total_games
+
+best_setter_tam <- as.character(win_ratios[win_ratios$Winner == "Tam",]$Setter)
+best_setter_tam_wins <- win_ratios[win_ratios$Winner == "Tam",]$n
+best_setter_tam_games <- win_ratios[win_ratios$Winner == "Tam",]$total_games
+```
+
+[Tam]{.tam} does best when **`r best_setter_tam`** sets the Mini, winning `r best_setter_tam_wins` of `r best_setter_tam_games` games.
+
+[Matt's]{.matt} favourite Mini setter is **`r best_setter_matt`**, with `r best_setter_matt_wins` wins out of `r best_setter_matt_games` games.
+
+Each square in this chart represents one Mini, coloured by the winner, for each crossword setter:
+
+```{r}
+#| label: Waffle chart showing winners by setter
+#| echo: false
+#| message: false
+#| warning: false
+winners_by_setter |> 
+  ggplot(aes(fill = Winner, values = n)) +
+  geom_waffle(
+    n_rows = 3,
+    size = 1,
+    colour = bg_colour,
+    flip = TRUE
+  ) +
+  coord_equal() +
+  facet_wrap(~Setter) +
+  scale_fill_manual(values = c(Matt = matt_colour, Tam = tam_colour)) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    plot.background = element_rect(fill = bg_colour, colour = bg_colour),
+    panel.background = element_rect(fill = bg_colour, colour = bg_colour),
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.x.top = element_blank(),
+    axis.title.x.bottom = element_blank(),
+    axis.title.y = element_blank(),
+    axis.title.y.left = element_blank(),
+    axis.title.y.right = element_blank()
+  )
+```
+
+```{r}
+#| label: Summary of performance by setter
+#| message: false
+#| warning: false
+#| include: false
+player_times_setter_summary <- 
+  player_times_setter |> 
+  group_by(Setter, Player) |> 
+  summarise(
+    mean_seconds = duration(round(mean(seconds), 0)),
+    sd_seconds = duration(round(sd(seconds), 0))
+  ) |> 
+  ungroup() |> 
+  mutate(mean_seconds_string = convert_seconds_to_time_string(duration(mean_seconds)))
+
+# Which setters are we each fastest and slowest with?
+matt_fastest_setter <- 
+  player_times_setter_summary |> 
+  filter(Player == "Matt") |> 
+  filter(mean_seconds == min(mean_seconds))
+
+matt_slowest_setter <-
+  player_times_setter_summary |> 
+  filter(Player == "Matt") |> 
+  filter(mean_seconds == max(mean_seconds))
+
+tam_fastest_setter <-
+  player_times_setter_summary |> 
+  filter(Player == "Tam") |> 
+  filter(mean_seconds == min(mean_seconds))
+
+tam_slowest_setter <-
+  player_times_setter_summary |> 
+  filter(Player == "Tam") |> 
+  filter(mean_seconds == max(mean_seconds))
+```
+
+[Matt]{.matt} tends to be fastest when **`r matt_fastest_setter$Setter`** sets the Mini, with an average completion time of **`r matt_fastest_setter$mean_seconds_string`**. But he's slowest when **`r matt_slowest_setter$Setter`** is the setter, completing these Minis in **`r matt_slowest_setter$mean_seconds_string`** on average.
+
+[Tam]{.tam} is speediest when **`r tam_fastest_setter$Setter`** sets the Mini, gunning it in **`r tam_fastest_setter$mean_seconds_string`**, on average. She's slowest when they're set by **`r tam_slowest_setter$Setter`**, with an average completion time of **`r tam_slowest_setter$mean_seconds_string`**.
+
+*Last updated on `r date_formatter(today())`.*
