@@ -189,7 +189,7 @@ plt_games_summary <-
     )
   ) +
   geom_col(show.legend = FALSE) +
-  geom_text(size = 3, position = position_stack(vjust = 0.5)) +
+  geom_text(size = 3, position = position_stack(vjust = 0.5), colour = "white") +
   coord_flip() +
   scale_fill_manual(values = c(Matt = matt_colour, Tam = tam_colour, Draw = "grey")) +
   theme_minimal() +
