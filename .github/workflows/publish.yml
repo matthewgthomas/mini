@@ -24,10 +24,10 @@ jobs:
         with:
           r-version: 'latest'
 
-      - name: Install R dependencies
-        run: |
-          install.packages(c("curl", "httr", "dplyr", "ggplot2", "lubridate", "readr", "stringr", "tibble", "tidyr", "ggridges", "plotly", "rmarkdown", "waffle"), repos = "https://cloud.r-project.org", dependencies = TRUE)
-        shell: Rscript {0}
+      - name: Install R Dependencies
+        uses: r-lib/actions/setup-renv@v2
+        with:
+          cache-version: 1
 
       - name: Render and Publish
         uses: quarto-dev/quarto-actions/publish@v2
