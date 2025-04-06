@@ -167,7 +167,7 @@ games_summary <-
   mutate(label = ifelse(
     Winner == "Draw",
     "",
-    str_glue("{Winner}: {n} ({scales::percent(prop, accuracy = 1)})")
+    str_glue("{Winner}: \n{n} ({scales::percent(prop, accuracy = 1)})")
   )) |> 
   
   # Label for tooltips
@@ -177,51 +177,82 @@ games_summary <-
     str_glue("{Winner} has won {n} of {num_games} Minis ({scales::percent(prop, accuracy = 0.1)}) so far")
   ))
 
+# plt_games_summary <- 
+#   games_summary |> 
+#   ggplot(
+#     aes(
+#       x = "1", 
+#       y = prop,
+#       fill = reorder(Winner, prop),
+#       label = label,
+#       text = tooltip
+#     )
+#   ) +
+#   geom_col(show.legend = FALSE) +
+#   geom_text(size = 12, position = position_stack(vjust = 0.5), colour = "white") +
+#   coord_flip() +
+#   scale_fill_manual(values = c(Matt = matt_colour, Tam = tam_colour, Draw = "grey")) +
+#   theme_minimal() +
+#   theme(
+#     panel.grid = element_blank(),
+#     axis.text = element_blank(),
+#     plot.background = element_rect(fill = bg_colour, colour = bg_colour),
+#     panel.background = element_rect(fill = bg_colour, colour = bg_colour)
+#   ) +
+#   labs(
+#     x = NULL,
+#     y = NULL
+#   )
+
+# Draw donut chart
+# Source: https://r-graph-gallery.com/128-ring-or-donut-plot.html
+
+# Compute the cumulative percentages (top of each rectangle)
+games_summary$ymax <- cumsum(games_summary$prop)
+
+# Compute the bottom of each rectangle
+games_summary$ymin <- c(0, head(games_summary$ymax, n=-1))
+
+# Compute label position
+games_summary$labelPosition <- (games_summary$ymax + games_summary$ymin) / 2
+
 plt_games_summary <- 
-  games_summary |> 
-  ggplot(
-    aes(
-      x = "1", 
-      y = prop,
-      fill = reorder(Winner, prop),
-      label = label,
-      text = tooltip
-    )
-  ) +
-  geom_col(show.legend = FALSE) +
-  geom_text(size = 3, position = position_stack(vjust = 0.5), colour = "white") +
-  coord_flip() +
+  games_summary |>
+  ggplot(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3, fill = Winner)) +
+  geom_rect() +
+  geom_text(x = 1.3, aes(y = labelPosition, label = label, color = Winner), size = 6) + 
+  # x here controls label position (inner / outer)
   scale_fill_manual(values = c(Matt = matt_colour, Tam = tam_colour, Draw = "grey")) +
-  theme_minimal() +
+  scale_colour_manual(values = c(Matt = matt_colour, Tam = tam_colour, Draw = "grey")) +
+  coord_polar(theta = "y") +
+  xlim(c(-1, 4)) +
+  theme_void() +
   theme(
-    panel.grid = element_blank(),
-    axis.text = element_blank(),
-    plot.background = element_rect(fill = bg_colour),
-    panel.background = element_rect(fill = bg_colour)
-  ) +
-  labs(
-    x = NULL,
-    y = NULL
+    legend.position = "none",
+    plot.background = element_rect(fill = bg_colour, colour = bg_colour),
+    panel.background = element_rect(fill = bg_colour, colour = bg_colour)
   )
 
-ggplotly(plt_games_summary, height = 150, tooltip = "text") |> 
-  config(
-    displayModeBar = TRUE,
-    displaylogo = FALSE,
-    modeBarButtonsToRemove = list(
-      "zoom",
-      "pan",
-      "select",
-      "zoomIn",
-      "zoomOut",
-      "autoScale",
-      "resetScale",
-      "lasso2d",
-      "hoverClosestCartesian",
-      "hoverCompareCartesian"
-    )
-  ) |> 
-  layout(showlegend = FALSE)
+plt_games_summary
+
+# ggplotly(plt_games_summary, height = 150, tooltip = "text") |> 
+#   config(
+#     displayModeBar = TRUE,
+#     displaylogo = FALSE,
+#     modeBarButtonsToRemove = list(
+#       "zoom",
+#       "pan",
+#       "select",
+#       "zoomIn",
+#       "zoomOut",
+#       "autoScale",
+#       "resetScale",
+#       "lasso2d",
+#       "hoverClosestCartesian",
+#       "hoverCompareCartesian"
+#     )
+#   ) |> 
+#   layout(showlegend = FALSE)
 ```
 
 ::::::::: crossword-container
@@ -286,7 +317,7 @@ if (nrow(fastest_game) > 1 & length(unique(fastest_game$Player)) > 1) {
   
 } else {
   # There's only one fastest game
-  str_glue("{format_name(fastest_game$Player)} holds the record for the fastest Mini, completing it in **{fastest_game$time} on {date_formatter(fastest_game$Date)}.")
+  str_glue("{format_name(fastest_game$Player)} holds the record for the fastest Mini, completing it in **{fastest_game$time}** on {date_formatter(fastest_game$Date)}.")
 }
 ```
 
@@ -311,7 +342,7 @@ if (nrow(slowest_game) > 1 & length(unique(slowest_game$Player)) > 1) {
 
 Other than the draw`r ifelse(draws>1, "s", "")`, our closest game was won by **`r format_name(closest_game$Winner)`** by a mere `r closest_game$Diff` second`r ifelse(closest_game$Diff>1, "s", "")`.
 
-This chart compares our completion times for each Mini:
+This chart compares our completion times for each Mini. Click/hover on the points to see the details of each game.
 
 ```{r}
 #| label: How close are our games?
