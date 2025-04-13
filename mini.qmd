@@ -46,6 +46,7 @@ tam_name <- "[Tam]{.tam}"
 #| warning: false
 #| include: false
 #library(tidyverse)
+library(cowplot)
 library(dplyr)
 library(ggplot2)
 library(lubridate)
@@ -230,10 +231,10 @@ plt_games_summary <-
   theme(
     legend.position = "none",
     plot.background = element_rect(fill = bg_colour, colour = bg_colour),
-    panel.background = element_rect(fill = bg_colour, colour = bg_colour)
+    panel.background = element_rect(fill = bg_colour, colour = bg_colour),
   )
 
-plt_games_summary
+ggdraw(plt_games_summary) + theme(plot.background = element_rect(fill = bg_colour, colour = bg_colour))
 
 # ggplotly(plt_games_summary, height = 150, tooltip = "text") |> 
 #   config(
@@ -600,7 +601,8 @@ Each square in this chart represents one Mini, coloured by the winner, for each 
 #| echo: false
 #| message: false
 #| warning: false
-winners_by_setter |> 
+plt_winners_by_setter <- 
+  winners_by_setter |> 
   ggplot(aes(fill = Winner, values = n)) +
   geom_waffle(
     n_rows = 3,
@@ -628,6 +630,8 @@ winners_by_setter |>
     axis.title.y.left = element_blank(),
     axis.title.y.right = element_blank()
   )
+
+ggdraw(plt_winners_by_setter) + theme(plot.background = element_rect(fill = bg_colour, colour = bg_colour))
 ```
 
 ```{r}
