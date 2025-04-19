@@ -32,8 +32,8 @@ S
 ```{r}
 #| label: Parameters/variables
 #| include: false
-matt_colour <- "#fd7e14"
-tam_colour <- "#0dcaf0"
+matt_colour <- "#C850A0"
+tam_colour <- "#50C878"
 bg_colour <- "#f5f5f5"
 
 matt_name <- "[Matt]{.matt}"
@@ -456,11 +456,33 @@ The chart below shows the variation in our completion times on each day of the w
 #| echo: false
 #| message: false
 #| warning: false
+player_weekday_colours <- c(
+  "Matt Monday" = "#882b69",
+  "Matt Tuesday" = "#9b3178", 
+  "Matt Wednesday" = "#c23d96",
+  "Matt Thursday" = "#ce64ab", 
+  "Matt Friday" = "#da8bc0", 
+  "Matt Saturday" = "#e7b1d5", 
+  "Matt Sunday" = "#f3d8ea",
+  
+  "Tam Monday" = "#2b884a",
+  "Tam Tuesday" = "#319b54", 
+  "Tam Wednesday" = "#3dc269",
+  "Tam Thursday" = "#64ce87",
+  "Tam Friday" = "#8bdaa5",
+  "Tam Saturday" = "#b1e7c3",
+  "Tam Sunday" = "#d8f3e1"
+)
+
 player_times_weekday |> 
+  mutate(player_weekday = paste(Player, Weekday)) |>
+  
   ggplot(aes(x = seconds, y = Weekday)) +
-  geom_density_ridges(aes(colour = Weekday, fill = Weekday), scale = 4, show.legend = FALSE) + 
+  geom_density_ridges(aes(colour = player_weekday, fill = player_weekday), scale = 4, show.legend = FALSE) + 
   scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
   scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
+  scale_colour_manual(values = player_weekday_colours) +
+  scale_fill_manual(values = player_weekday_colours) +
   coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
   facet_wrap(~Player, ncol = 2) +
   theme_ridges() +
