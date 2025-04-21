@@ -118,6 +118,13 @@ mini <- mini |>
     
     Winner = ifelse(Matt_seconds < Tam_seconds, "Matt", ifelse(Matt_seconds > Tam_seconds, "Tam", "Draw")),
     
+    # Some dates are formatted YYYY-MM-DD, others are MM/DD/YYYY; convert all to dates
+    Date = if_else(
+      str_detect(Date, "/"), 
+      mdy(Date),
+      ymd(Date)
+    ),
+    
     # Get weekday from Date column
     Weekday = weekdays(Date),
     Weekday = factor(Weekday, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), ordered = TRUE)
