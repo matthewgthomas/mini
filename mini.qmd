@@ -116,6 +116,10 @@ mini <- mini |>
     Matt = convert_seconds_to_time_string(Matt_seconds),
     Tam = convert_seconds_to_time_string(Tam_seconds),
     
+    Winner = ifelse(Matt_seconds < Tam_seconds, "Matt", ifelse(Matt_seconds > Tam_seconds, "Tam", "Draw")),
+    
+    # Get weekday from Date column
+    Weekday = weekdays(Date),
     Weekday = factor(Weekday, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), ordered = TRUE)
   )
 
@@ -478,7 +482,7 @@ player_times_weekday |>
   mutate(player_weekday = paste(Player, Weekday)) |>
   
   ggplot(aes(x = seconds, y = Weekday)) +
-  geom_density_ridges(aes(colour = player_weekday, fill = player_weekday), scale = 4, show.legend = FALSE) + 
+  geom_density_ridges(aes(fill = player_weekday), colour = "white", scale = 4, show.legend = FALSE) + 
   scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
   scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
   scale_colour_manual(values = player_weekday_colours) +
@@ -601,7 +605,8 @@ win_ratios <-
   ungroup() |> 
   
   group_by(Winner) |> 
-  filter(prop_won == max(prop_won))
+  filter(prop_won == max(prop_won)) |> 
+  filter(total_games == max(total_games))
 
 best_setter_matt <- as.character(win_ratios[win_ratios$Winner == "Matt",]$Setter)
 best_setter_matt_wins <- win_ratios[win_ratios$Winner == "Matt",]$n
