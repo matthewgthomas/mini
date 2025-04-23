@@ -1,6 +1,4 @@
 on:
-  schedule:
-    - cron: "7 3 * * *"  # runs every night at 3:07 AM UTC
   workflow_dispatch:
   push:
     branches: main
