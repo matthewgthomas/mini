@@ -352,7 +352,7 @@ if (nrow(slowest_game) > 1 & length(unique(slowest_game$Player)) > 1) {
 }
 ```
 
-Other than the draw`r ifelse(draws>1, "s", "")`, our closest game was won by **`r format_name(closest_game$Winner)`** by a mere `r closest_game$Diff` second`r ifelse(closest_game$Diff>1, "s", "")`.
+Other than the draw`r ifelse(draws>1, "s", "")`, we've played `r nrow(closest_game)` Minis that were a mere `r closest_game$Diff[1]` second`r ifelse(closest_game$Diff[1] > 1, "s", "")` apart.
 
 This chart compares our completion times for each Mini. Click/hover on the points to see the details of each game.
 
