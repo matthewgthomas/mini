@@ -440,13 +440,21 @@ fastest_mean_times <-
   filter(mean_seconds == min(mean_seconds))
 
 fastest_day_matt <- as.character(fastest_mean_times[fastest_mean_times$Player == "Matt",]$Weekday)
-fastest_mean_time_matt <- fastest_mean_times[fastest_mean_times$Player == "Matt",]$mean_seconds_string
+# fastest_mean_time_matt <- fastest_mean_times[fastest_mean_times$Player == "Matt",]$mean_seconds_string
 
 fastest_day_tam <- as.character(fastest_mean_times[fastest_mean_times$Player == "Tam",]$Weekday)
-fastest_mean_time_tam <- fastest_mean_times[fastest_mean_times$Player == "Tam",]$mean_seconds_string
+# fastest_mean_time_tam <- fastest_mean_times[fastest_mean_times$Player == "Tam",]$mean_seconds_string
 
 # Are we fastest on the same day?
-same_fastest_day <- fastest_day_matt == fastest_day_tam
+# Only check this if we both have only one fastest day, otherwise the logic gets a bit faffy
+same_fastest_day <- ifelse(
+  length(fastest_day_matt) == 1 & length(fastest_day_tam) == 1,
+  fastest_day_matt == fastest_day_tam,
+  FALSE
+)
+
+fastest_day_matt <- str_flatten_comma(fastest_day_matt, last = " and ")
+fastest_day_tam <- str_flatten_comma(fastest_day_tam, last = " and ")
 ```
 
 ```{r}
@@ -454,9 +462,9 @@ same_fastest_day <- fastest_day_matt == fastest_day_tam
 #| echo: false
 #| results: asis
 if (same_fastest_day) {
-  str_glue("[Tam]{.tam} and [Matt]{.matt} both tend to have their fastest Mini completion times on {{fastest_day_tam}}s.", .open = "{{", .close = "}}")
+  str_glue("[Tam]{.tam} and [Matt]{.matt} both tend to have their fastest Mini completion times on {{fastest_day_tam}}.", .open = "{{", .close = "}}")
 } else {
-  str_glue("[Tam's]{.tam} fastest Mini completion times tend to be on {{fastest_day_tam}}s, while [Matt]{.matt} is faster on {{fastest_day_matt}}s, on average.", .open = "{{", .close = "}}")
+  str_glue("[Tam's]{.tam} fastest Mini completion times tend to be on {{fastest_day_tam}}s, while [Matt]{.matt} is faster on {{fastest_day_matt}}, on average.", .open = "{{", .close = "}}")
 }
 ```
 
